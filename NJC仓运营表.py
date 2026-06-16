@@ -131,9 +131,7 @@ elif page == "📋 运营交接清单":
             wh_val = st.text_input("🏠 仓库名称", value=day_data.get("warehouse", "NJC仓"), key=f"wh_{date_key}")
         with col_user:
             sv_val = st.text_input("👤 当班值班主管", value=day_data.get("supervisor", ""), key=f"sv_{date_key}", placeholder="请输入主管姓名")
-        # --- 在你的运营交接清单页面代码最后，添加/替换为以下部分 ---
-    st.markdown("---")
-    st.header("📊 NJC 仓运管核心数据流水大盘")
+ 
     
     # 1. 加载所有历史数据
     all_history = load_global_data()

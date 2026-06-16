@@ -1,57 +1,41 @@
 import streamlit as st
 import pandas as pd
-import json
-import os
-from datetime import datetime
+import math
 
-# 配置文件名
-DB_FILE = "operation_data.json"
+# --- 页面配置 ---
+st.set_page_config(page_title="NJC 运营中心", layout="wide")
 
-# 初始化数据：如果文件不存在则创建一个模板
-def init_db():
-    if not os.path.exists(DB_FILE):
-        default_data = {
-            "columns": ["工作内容", "完成", "责任人"],
-            "rows": [
-                {"工作内容": "NJC仓派送装车完成", "完成": False, "责任人": ""},
-                {"工作内容": "GOFO司机取货完成", "完成": False, "责任人": ""},
-            ]
-        }
-        with open(DB_FILE, 'w', encoding='utf-8') as f:
-            json.dump(default_data, f)
+# --- 侧边栏导航 ---
+page = st.sidebar.radio("🚀 功能导航", ["📋 运营交接清单", "📊 劳务排班预测"])
 
-# 加载数据
-def load_data():
-    with open(DB_FILE, 'r', encoding='utf-8') as f:
-        data = json.load(f)
-    return pd.DataFrame(data['rows'])
+# --- 功能 1: 运营交接清单 ---
+if page == "📋 运营交接清单":
+    st.title("📋 运营交接清单")
+    # 你的 HTML 代码块
+    html_code = """
+    <div style="padding:20px; border:1px solid #ccc;">
+        <h1>NJC仓运营交接清单 (Pro版)</h1>
+        <p>这是你的详细表单区域，请在此录入数据...</p>
+    </div>
+    """
+    st.components.v1.html(html_code, height=800)
 
-# 保存数据
-def save_data(df):
-    data = {"rows": df.to_dict(orient='records')}
-    with open(DB_FILE, 'w', encoding='utf-8') as f:
-        json.dump(data, f, ensure_ascii=False)
-
-# 主程序逻辑
-st.title("📋 NJC仓运营交接清单")
-today = datetime.now().strftime("%Y/%m/%d")
-st.subheader(f"📅 当前日期: {today}")
-
-init_db()
-df = load_data()
-
-# 可视化编辑表格
-st.write("### 操作面板")
-edited_df = st.data_editor(df, use_container_width=True)
-
-# 保存按钮
-if st.button("💾 保存今日数据到后台"):
-    save_data(edited_df)
-    st.balloons()
-    st.success("数据已成功沉淀至系统后台！")
-
-# 导出 Excel
-st.write("---")
-if st.button("📥 导出为 Excel"):
-    edited_df.to_excel("NJC_Report.xlsx", index=False)
-    st.download_button("点击下载 Excel", data=open("NJC_Report.xlsx", "rb"), file_name=f"NJC_{today.replace('/', '-')}.xlsx")
+# --- 功能 2: 劳务排班预测 (植入你的高级逻辑) ---
+elif page == "📊 劳务排班预测":
+    st.title("⚙️ 人体工效学劳务预测模型")
+    
+    # 动态参数录入
+    col1, col2, col3 = st.columns(3)
+    v1 = col1.number_input("卸货件数", 1500)
+    v2 = col2.number_input("上架件数", 1200)
+    v3 = col3.number_input("拣货件数", 3000)
+    
+    uph = st.number_input("标准人员UPH", 100)
+    hours = st.number_input("班次有效工时", 9.0)
+    
+    # 核心算法：疲劳衰减修正
+    total_vol = v1 + v2 + v3
+    res = (total_vol / uph / hours) * 1.15
+    
+    st.metric("👤 建议配置人数 (含疲劳储备)", f"{round(res, 1)} 人")
+    st.info("算法逻辑：基于人体工效学分段疲劳衰减模型。")

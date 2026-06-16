@@ -10,7 +10,6 @@ import os
 DB_FILE = "njc_database.json"
 
 def load_global_data():
-    """从本地文件加载所有历史数据"""
     if os.path.exists(DB_FILE):
         try:
             with open(DB_FILE, "r", encoding="utf-8") as f:
@@ -20,7 +19,6 @@ def load_global_data():
     return {}
 
 def save_global_data(data):
-    """将数据写入本地文件永久保存"""
     with open(DB_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=4)
 
@@ -81,23 +79,19 @@ if page == "📊 劳务排班预测":
     st.subheader(f"🔥 下午班次总计需通知劳务到场 : :blue[{total_needed} 人]")
 
 # ==========================================
-# 功能二：运营交接清单 (带数据库永久保存版)
+# 功能二：运营交接清单 (直观 Excel 看盘版)
 # ==========================================
 elif page == "📋 运营交接清单":
     st.title("📋 NJC仓运营交接清单 - 数据中心系统版")
     st.caption("系统采用响应式数据编辑器，点击下方保存按钮可永久沉淀至系统后台。")
     
-    # 1. 日期选择（每天打开自动定位到当天）
     col_date, col_wh, col_user = st.columns([1.5, 1, 1.5])
     with col_date:
         selected_date = st.date_input("📅 排班选择日期", datetime.date.today())
     
     date_key = str(selected_date)
-    
-    # 从后台文件读取总数据库
     global_db = load_global_data()
     
-    # 2. 如果当前日期在数据库中不存在，初始化干净的默认数据
     if date_key not in global_db:
         global_db[date_key] = {
             "warehouse": "NJC仓",
@@ -117,10 +111,8 @@ elif page == "📋 运营交接清单":
             "sign1": "", "sign2": "", "sign3": "", "sign4": ""
         }
     
-    # 获取当天的数据快照
     day_data = global_db[date_key]
     
-    # 3. 渲染基本信息输入框
     with col_wh:
         wh_val = st.text_input("🏠 仓库", value=day_data.get("warehouse", "NJC仓"), key=f"wh_{date_key}")
     with col_user:
@@ -128,12 +120,10 @@ elif page == "📋 运营交接清单":
         
     st.markdown("---")
     
-    # --- 一、早班工作清单 ---
     st.subheader("一、早班工作清单")
     df_morning = pd.DataFrame(day_data["morning_tasks"])
-    edited_morning = st.data_editor(df_morning, use_container_width=True, hide_index=True, key=f"edit_edit_morning_{date_key}")
+    edited_morning = st.data_editor(df_morning, use_container_width=True, hide_index=True, key=f"edit_morning_{date_key}")
     
-    # --- 二、与 三、 并排布局 ---
     col_left, col_right = st.columns(2)
     with col_left:
         st.subheader("二、早班叫车与清关行提货")
@@ -145,12 +135,10 @@ elif page == "📋 运营交接清单":
         df_shipping = pd.DataFrame(day_data["shipping_data"])
         edited_shipping = st.data_editor(df_shipping, use_container_width=True, hide_index=True, key=f"edit_shipping_{date_key}")
         
-    # --- 四、特殊事件及延误 ---
     st.subheader("四、特殊事件及延误")
     df_events = pd.DataFrame(day_data["special_events"])
     edited_events = st.data_editor(df_events, use_container_width=True, hide_index=True, num_rows="dynamic", key=f"edit_events_{date_key}")
     
-    # --- 五、交接确认 ---
     st.subheader("五、交接确认")
     with st.container(border=True):
         col_s1, col_s2, col_s3, col_s4 = st.columns(4)
@@ -159,13 +147,11 @@ elif page == "📋 运营交接清单":
         s3 = col_s3.text_input("主管签字 :", value=day_data.get("sign3", ""), key=f"s3_{date_key}")
         s4 = col_s4.text_input("区域经理签字 :", value=day_data.get("sign4", ""), key=f"s4_{date_key}")
         
-    # --- 数据控制核心按钮 ---
     st.markdown("---")
     col_btn1, col_btn2, _ = st.columns([1.5, 1.5, 4])
     
     with col_btn1:
         if st.button("💾 点击保存当前页数据到后台", type="primary"):
-            # 捕获用户在界面上做出的所有最新修改
             global_db[date_key] = {
                 "warehouse": wh_val,
                 "supervisor": sv_val,
@@ -175,9 +161,9 @@ elif page == "📋 运营交接清单":
                 "special_events": edited_events.to_dict(orient="records"),
                 "sign1": s1, "sign2": s2, "sign3": s3, "sign4": s4
             }
-            # 写入本地JSON数据库，实现永久保存
             save_global_data(global_db)
-            st.success(f"🎉 成功将 {date_key} 的数据锁定保存至后台数据库！刷新网页也不会丢失。")
+            st.success(f"🎉 成功将 {date_key} 的数据锁定保存至后台数据库！")
+            st.rerun()
             
     with col_btn2:
         if st.button("🧹 擦除今日表格", type="secondary"):
@@ -185,18 +171,46 @@ elif page == "📋 运营交接清单":
                 del global_db[date_key]
                 save_global_data(global_db)
                 st.rerun()
-# ==========================================
-    # 3. 网页端直接查看/下载后台全量原始数据
+
+    # ==========================================
+    # 3. 📉 【直观 Excel 看盘区】（自动将后台合并，像普通 Excel 一样平铺展示）
     # ==========================================
     st.markdown("---")
-    with st.expander("🔍 点击展开/折叠 查看系统后台全量历史数据库 (Json 格式)"):
-        all_data = load_global_data()
-        st.json(all_data)
+    st.header("📊 历史提货数据大盘汇总 (Excel 模式)")
+    st.caption("自动抽取后台每一天保存的“二、早班叫车与清关行提货”数据，整合成一张大表展示。")
+
+    all_history = load_global_data()
+    
+    if all_history:
+        summary_rows = []
+        for date, content in all_history.items():
+            wh = content.get("warehouse", "NJC仓")
+            sv = content.get("supervisor", "")
+            customs_list = content.get("customs_data", [])
+            for row in customs_list:
+                summary_rows.append({
+                    "登记日期": date,
+                    "仓库": wh,
+                    "值班主管": sv,
+                    "清关行": row.get("清关行", ""),
+                    "状态": row.get("状态", ""),
+                    "数量": row.get("数量", ""),
+                    "提货时间": row.get("时间", "")
+                })
         
-        # 增加一键下载整盘数据库备份的按钮
+        # 转化为标准的电子表格 DataFrame
+        df_excel = pd.DataFrame(summary_rows)
+        
+        # 在网页上直接用 Excel 样式高亮显示
+        st.dataframe(df_excel, use_container_width=True, hide_index=True)
+        
+        # 留一键导出真正的 Excel (.csv) 文件按钮
+        csv_data = df_excel.to_csv(index=False).encode('utf-8-sig')
         st.download_button(
-            label="📥 下载整盘数据库备份 (.json)",
-            data=json.dumps(all_data, ensure_ascii=False, indent=4),
-            file_name="njc_warehouse_db_backup.json",
-            mime="application/json"
+            label="🍏 一键下载数据并用本地 Excel 打开 (.csv)",
+            data=csv_data,
+            file_name=f"NJC仓历史清关提货汇总_{datetime.date.today()}.csv",
+            mime="text/csv"
         )
+    else:
+        st.info("💡 目前后台数据库还没有任何历史保存数据，请在上方填写表格并点击【💾 保存】。")

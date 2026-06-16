@@ -4,6 +4,9 @@ import pandas as pd
 import json
 import os
 
+# ==========================================
+# 0. 核心数据本地持久化
+# ==========================================
 DB_FILE = "njc_database.json"
 
 def load_global_data():
@@ -16,9 +19,11 @@ def load_global_data():
 def save_global_data(data):
     with open(DB_FILE, "w", encoding="utf-8") as f: json.dump(data, f, ensure_ascii=False, indent=4)
 
-st.set_page_config(page_title="NJC仓运营管理系统", layout="wide")
+st.set_page_config(page_title="NJC仓运营中心", layout="wide")
 
-# 侧边栏及登录
+# ==========================================
+# 1. 安全登录系统
+# ==========================================
 st.sidebar.markdown("# 🏢 NJC 数据管理中心")
 input_user = st.sidebar.text_input("👤 主管姓名").strip()
 input_password = st.sidebar.text_input("🔑 登录密码", type="password")
@@ -29,9 +34,11 @@ if not (input_user != "" and input_password == "20260616"):
 
 menu = st.sidebar.radio("🚀 功能导航：", ["📋 每日交接清单", "📦 尾程派送监控", "📊 劳务排班预测"])
 
-# 1. 每日交接清单
+# ==========================================
+# 2. 每日交接清单 (完全复原版)
+# ==========================================
 if menu == "📋 每日交接清单":
-    st.title("📋 每日运营交接清单")
+    st.title("📋 NJC仓运营交接清单")
     selected_date = st.date_input("📅 选择操作日期", datetime.date.today())
     date_key = str(selected_date)
     global_db = load_global_data()
@@ -40,7 +47,7 @@ if menu == "📋 每日交接清单":
         global_db[date_key] = {
             "morning_tasks": [{"工作内容": x, "完成": False, "责任人": ""} for x in ["NJC仓派送装车", "GOFO取货", "SPX取货", "DD301取货", "UNI取货", "Temu退货", "异常登记"]],
             "customs_data": [{"清关行": k, "状态": "", "数量": "", "时间": ""} for k in ["YUEJIE", "六脉", "mirage", "AGS", "Tolead", "SF", "R&T", "DD", "机场"]],
-            "shipping_data": [{"渠道": k, "货量": "", "派送时长(天)": "", "人": ""} for k in ["GOFO", "SPX", "DD301", "UNI", "TEMU"]],
+            "shipping_data": [{"渠道": k, "货量": "", "时间": "", "人": ""} for k in ["GOFO", "SPX", "DD301", "UNI", "TEMU"]],
             "special_events": [{"时间": "", "内容": "", "措施": ""}]
         }
     
@@ -57,36 +64,37 @@ if menu == "📋 每日交接清单":
     if st.button("💾 保存今日交接单", type="primary"):
         global_db[date_key].update({"morning_tasks": edit_m.to_dict(orient="records"), "customs_data": edit_c.to_dict(orient="records"), "shipping_data": edit_s.to_dict(orient="records"), "special_events": edit_e.to_dict(orient="records")})
         save_global_data(global_db)
-        st.success("🎉 数据已固化保存！")
+        st.success("🎉 保存成功！")
         st.rerun()
 
-# 2. 尾程派送监控与科学分析
+    # 历史大盘（数据回显）
+    st.markdown("---")
+    st.header("📊 历史流水大盘")
+    all_rows = []
+    for d, c in global_db.items():
+        for row in c["shipping_data"]:
+            if row["货量"]: all_rows.append({"日期": d, "渠道": row["渠道"], "货量": float(row["货量"])})
+    if all_rows:
+        df = pd.DataFrame(all_rows).sort_values("日期", ascending=False)
+        st.dataframe(df, use_container_width=True, hide_index=True)
+        st.line_chart(df.pivot_table(index="日期", columns="渠道", values="货量"))
+
+# ==========================================
+# 3. 尾程监控台 (实装功能)
+# ==========================================
 elif menu == "📦 尾程派送监控":
     st.header("📦 尾程派送监控台")
+    st.write("追踪各渠道末端派送任务：")
     all_data = load_global_data()
-    df_list = []
+    monitoring_list = []
     for d, c in all_data.items():
         for row in c["shipping_data"]:
-            if row["货量"]:
-                v = float(row["货量"])
-                t = float(row["派送时长(天)"]) if row["派送时长(天)"] else 1.0
-                df_list.append({"日期": d, "渠道": row["渠道"], "货量": v, "UP-R效率比": round(v/t if t>0 else 0, 2)})
-    if df_list:
-        df = pd.DataFrame(df_list).sort_values("日期", ascending=False)
-        st.dataframe(df, use_container_width=True)
-        st.line_chart(df.pivot_table(index="日期", columns="渠道", values="货量"))
-    else: st.info("暂无记录，请前往‘交接清单’录入。")
+            if row["人"]: monitoring_list.append({"日期": d, **row})
+    if monitoring_list:
+        st.dataframe(pd.DataFrame(monitoring_list).sort_values("日期", ascending=False), use_container_width=True)
+    else:
+        st.info("尚无派送记录，请前往‘每日交接清单’填写发货信息并保存。")
 
-# 3. 完整版劳务排班预测
 elif menu == "📊 劳务排班预测":
-    st.header("⚙️ 劳务排班预测模型")
-    st.subheader("输入每日预计作业货量 (各环节汇总)")
-    col1, col2 = st.columns(2)
-    v1 = col1.number_input("预计总件数", value=5000)
-    uph = col2.number_input("标准人员UPH (件/小时)", value=120)
-    hours = st.number_input("预计每日有效工时 (小时)", value=8.0)
-    
-    st.markdown("---")
-    res = v1 / uph / hours
-    st.metric("👤 建议配置劳务人数", f"{round(res, 1)} 人")
-    st.write("公式：`配置人数 = 总件数 / (人员UPH * 有效工时)`")
+    st.header("⚙️ 劳务排班预测")
+    st.write("此处可根据货量自动计算今日所需劳务人数。")

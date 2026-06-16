@@ -1,5 +1,6 @@
 import streamlit as st
-import streamlit.components.v1 as components
+import datetime
+import pandas as pd
 
 # ==========================================
 # 1. 页面基本配置
@@ -58,154 +59,125 @@ if page == "📊 劳务排班预测":
     st.subheader(f"🔥 下午班次总计需通知劳务到场 : :blue[{total_needed} 人]")
 
 # ==========================================
-# 功能二：运营交接清单 (原生精美网页界面嵌入)
+# 功能二：运营交接清单 (纯 Streamlit 原生响应式保存版)
 # ==========================================
 elif page == "📋 运营交接清单":
-    html_code = """
-    <!DOCTYPE html>
-    <html lang="zh-CN">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>NJC仓运营交接清单 - Pro</title>
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-        <style>
-            :root {--primary-bg: #ffffff; --section-bg: #f8f9fa; --border-color: #000000; --text-main: #1a1a1a; --accent-color: #0046ad; }
-            body {font-family: 'Inter', "Microsoft YaHei", sans-serif; margin: 10px 30px; padding: 0; background-color: var(--primary-bg) !important; color: var(--text-main) !important; line-height: 1.4; }
-            h1 {text-align: center; font-size: 24px; font-weight: 700; margin: 0 0 10px 0; letter-spacing: 1px; text-transform: uppercase; }
-            h2 {background-color: var(--section-bg); border: 1.5px solid var(--border-color); padding: 4px 10px; font-size: 14px; font-weight: 700; margin: 10px 0 5px 0; display: flex; align-items: center; }
-            .info-header {display: flex; justify-content: center; gap: 20px; margin-bottom: 10px; font-size: 13px; }
-            .info-header input {border: none; border-bottom: 1px solid var(--border-color); font-family: inherit; padding: 0 5px; outline: none; text-align: center; }
-            table {width: 100%; border-collapse: collapse; margin-bottom: 2px; }
-            th, td {border: 1px solid var(--border-color); padding: 5px 8px; font-size: 12px; height: 22px; }
-            th {background-color: #eeeeee; font-weight: 600; text-align: center; }
-            input[type="text"] {width: 100%; border: none; outline: none; font-size: 12px; background: transparent; }
-            input[type="checkbox"] {transform: scale(1.1); cursor: pointer; }
-            .grid-container {display: grid; grid-template-columns: 1fr 1fr; gap: 15px; align-items: start; }
-            .signature-section {margin-top: 10px; padding: 8px; border: 1px dashed #666; background-color: #fafafa; }
-            .signature-grid {display: grid; grid-template-columns: 1fr 1fr; row-gap: 8px; column-gap: 40px; }
-            .sig-item {font-size: 13px; font-weight: 500; white-space: nowrap; }
-            .sig-line {display: inline-block; width: 160px; border-bottom: 1px solid var(--border-color); margin-left: 5px; vertical-align: bottom; height: 18px; }
-            .btn-container {text-align: center; margin-top: 20px; margin-bottom: 20px; display: flex; justify-content: center; gap: 15px; }
-            .print-btn, .clear-btn {border: none; padding: 10px 25px; font-size: 14px; font-weight: 600; border-radius: 4px; cursor: pointer; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
-            .print-btn { background: var(--accent-color); color: white; }
-            .clear-btn { background: #dc3545; color: white; }
-            @media print {@page { size: A4; margin: 0.5cm; } .btn-container { display: none; } body { margin: 0; transform: scale(0.96); transform-origin: top center; } h2#section-5 { margin-top: 5px; font-size: 12px; padding: 2px 8px; } .signature-section { margin-top: 5px; padding: 4px; } .sig-item { font-size: 11px; } .signature-grid { row-gap: 4px; } #special-events-table td { height: 18px; } }
-        </style>
-    </head>
-    <body>
-        <h1>NJC仓运营交接清单</h1>
-        <div class="info-header">
-            <div>日期 :  <input type="date" id="current-date" style="width: 130px;" onchange="handleDateChange()"></div>
-            <div>仓库 :  <input type="text" id="warehouse-name" value="NJC仓" style="width: 70px; font-weight: bold;"></div>
-            <div>值班主管 :  <input type="text" id="supervisor" placeholder="签字确认" style="width: 100px;"></div>
-        </div>
-        <h2>一、早班工作清单</h2>
-        <table>
-            <thead>
-                <tr>
-                    <th style="width: 65%;">工作内容</th>
-                    <th style="width: 10%;">完成</th>
-                    <th style="width: 25%;">责任人</th>
-                </tr>
-            </thead>
-            <tbody id="morning-tasks">
-                <tr><td>NJC仓派送货装车完成</td><td align="center"><input type="checkbox"></td><td><input type="text"></td></tr>
-                <tr><td>GOFO司机取货完成</td><td align="center"><input type="checkbox"></td><td><input type="text"></td></tr>
-                <tr><td>SPX司机取货完成</td><td align="center"><input type="checkbox"></td><td><input type="text"></td></tr>
-                <tr><td>DD301司机取货完成</td><td align="center"><input type="checkbox"></td><td><input type="text"></td></tr>
-                <tr><td>UNI司机取货完成</td><td align="center"><input type="checkbox"></td><td><input type="text"></td></tr>
-                <tr><td>Temu退货接收登记完成</td><td align="center"><input type="checkbox"></td><td><input type="text"></td></tr>
-                <tr><td>异常包裹登记完成</td><td align="center"><input type="checkbox"></td><td><input type="text"></td></tr>
-            </tbody>
-        </table>
-        <div class="grid-container">
-            <div class="left-col">
-                <h2>二、早班叫车与清关行提货</h2>
-                <table>
-                    <thead>
-                        <tr>
-                            <th style="width: 25%;">清关行</th>
-                            <th style="width: 35%;">状态</th>
-                            <th style="width: 20%;">数量</th>
-                            <th style="width: 20%;">时间</th>
-                        </tr>
-                    </thead>
-                    <tbody id="customs-clearance">
-                        <tr><td><strong>YUEJIE</strong></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
-                        <tr><td><strong>六脉</strong></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
-                        <tr><td><strong>mirage</strong></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
-                        <tr><td><strong>AGS</strong></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
-                        <tr><td><strong>Tolead</strong></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
-                        <tr><td><strong>SF</strong></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
-                        <tr><td><strong>R&T</strong></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
-                        <tr><td><strong>DD</strong></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
-                        <tr><td><strong>机场</strong></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
-                    </tbody>
-                </table>
-            </div>
-            <div class="right-col">
-                <h2>三、渠道发货记录</h2>
-                <table>
-                    <thead>
-                        <tr>
-                            <th style="width: 25%;">渠道</th>
-                            <th style="width: 30%;">货量</th>
-                            <th style="width: 25%;">时间</th>
-                            <th style="width: 20%;">人</th>
-                        </tr>
-                    </thead>
-                    <tbody id="shipping-channels">
-                        <tr><td><strong>GOFO</strong></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
-                        <tr><td><strong>SPX</strong></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
-                        <tr><td><strong>DD301</strong></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
-                        <tr><td><strong>UNI</strong></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
-                        <tr><td><strong>TEMU</strong></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
-                    </tbody>
-                </table>
-                <h2 style="margin-top: 8px;">四、特殊事件及延误</h2>
-                <table id="special-events-table">
-                    <thead>
-                        <tr>
-                            <th style="width: 20%;">时间</th>
-                            <th style="width: 50%;">内容</th>
-                            <th style="width: 30%;">措施</th>
-                        </tr>
-                    </thead>
-                    <tbody id="special-events">
-                        <tr><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
-                        <tr><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-        <h2 id="section-5">五、交接确认</h2>
-        <div class="signature-section">
-            <div class="signature-grid">
-                <div class="sig-item">交班人签字 : <span class="sig-line"></span></div>
-                <div class="sig-item">接班人签字 : <span class="sig-line"></span></div>
-                <div class="sig-item">主管签字 : <span class="sig-line"></span></div>
-                <div class="sig-item">区域经理签字 : <span class="sig-line"></span></div>
-            </div>
-        </div>
-        <div class="btn-container">
-            <button class="print-btn" onclick="window.print()">生成 A4 打印预览</button>
-            <button class="clear-btn" onclick="clearCurrentDayData()">清空今日数据</button>
-        </div>
-        <script>
-            function getStorageKey() {const dateStr = document.getElementById('current-date').value || getTodayStr(); return `NJC_Data_${dateStr}`; }
-            function getTodayStr() {const today = new Date(); return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`; }
-            window.addEventListener('DOMContentLoaded', () => {initDate(); loadSavedData(); setupAutoSave(); });
-            function initDate() {const dateInput = document.getElementById('current-date'); if (!dateInput.value) { dateInput.value = getTodayStr(); } }
-            function setupAutoSave() {document.body.addEventListener('input', debounceSave); document.body.addEventListener('change', debounceSave); }
-            let saveTimeout; function debounceSave() {clearTimeout(saveTimeout); saveTimeout = setTimeout(saveData, 500); }
-            function saveData() {const key = getStorageKey(); const data = {warehouse: document.getElementById('warehouse-name').value, supervisor: document.getElementById('supervisor').value, inputs: [], checkboxes: [] }; document.querySelectorAll('input[type="text"]').forEach((input, index) => {data.inputs.push({ index, value: input.value }); }); document.querySelectorAll('input[type="checkbox"]').forEach((checkbox, index) => {data.checkboxes.push({ index, checked: checkbox.checked }); }); localStorage.setItem(key, JSON.stringify(data)); }
-            function loadSavedData() {resetFormToBlank(); const key = getStorageKey(); const savedData = localStorage.getItem(key); if (!savedData) return; try {const data = JSON.parse(savedData); if (data.warehouse) document.getElementById('warehouse-name').value = data.warehouse; if (data.supervisor) document.getElementById('supervisor').value = data.supervisor; const textInputs = document.querySelectorAll('input[type="text"]'); if (data.inputs) {data.inputs.forEach(item => {if (textInputs[item.index]) textInputs[item.index].value = item.value; }); } const checkboxes = document.querySelectorAll('input[type="checkbox"]'); if (data.checkboxes) {data.checkboxes.forEach(item => {if (checkboxes[item.index]) checkboxes[item.index].checked = item.checked; }); } } catch (e) { console.error("加载数据失败:", e); } }
-            function resetFormToBlank() {document.querySelectorAll('input[type="text"]').forEach(input => {if (input.id !== 'warehouse-name') input.value = ''; }); document.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {checkbox.checked = false; }); document.getElementById('supervisor').value = ''; }
-            function handleDateChange() { loadSavedData(); }
-            function clearCurrentDayData() {if (confirm('确定要清空【当前所选日期】的所有输入数据吗？')) {resetFormToBlank(); localStorage.removeItem(getStorageKey()); saveData(); } }
-        </script>
-    </body>
-    </html>
-    """
-    components.html(html_code, height=1100, scrolling=True)
+    st.title("📋 NJC仓运营交接清单 - 数据中心系统版")
+    st.caption("系统采用响应式数据编辑器，输入数据实时在后台自动保存。")
+    
+    # --- 顶层核心控制：日期与基本信息 ---
+    # 每天进入网页，这里都会自动刷新并锁定为当天的日期
+    col_date, col_wh, col_user = st.columns([1.5, 1, 1.5])
+    with col_date:
+        selected_date = st.date_input("📅 排班选择日期", datetime.date.today())
+    
+    # 将日期转化为字符串，作为后台存储数据的唯一Key
+    date_key = str(selected_date)
+    
+    # 初始化当前选定日期的系统持久缓存
+    if "saved_data" not in st.session_state:
+        st.session_state.saved_data = {}
+        
+    if date_key not in st.session_state.saved_data:
+        # 如果是新的一天，自动刷新并初始化一个干净的空白表格数据
+        st.session_state.saved_data[date_key] = {
+            "warehouse": "NJC仓",
+            "supervisor": "",
+            "morning_tasks": pd.DataFrame([
+                {"工作内容": "NJC仓派送货装车完成", "完成": False, "责任人": ""},
+                {"工作内容": "GOFO司机取货完成", "完成": False, "责任人": ""},
+                {"工作内容": "SPX司机取货完成", "完成": False, "责任人": ""},
+                {"工作内容": "DD301司机取货完成", "完成": False, "责任人": ""},
+                {"工作内容": "UNI司机取货完成", "完成": False, "责任人": ""},
+                {"工作内容": "Temu退货接收登记完成", "完成": False, "责任人": ""},
+                {"工作内容": "异常包裹登记完成", "完成": False, "责任人": ""}
+            ]),
+            "customs_data": pd.DataFrame([
+                {"清关行": k, "状态": "", "数量": "", "时间": ""} 
+                for k in ["YUEJIE", "六脉", "mirage", "AGS", "Tolead", "SF", "R&T", "DD", "机场"]
+            ]),
+            "shipping_data": pd.DataFrame([
+                {"渠道": k, "货量": "", "时间": "", "人": ""}
+                for k in ["GOFO", "SPX", "DD301", "UNI", "TEMU"]
+            ]),
+            "special_events": pd.DataFrame([
+                {"时间": "", "内容": "", "措施": ""},
+                {"时间": "", "内容": "", "措施": ""}
+            ]),
+            "sign1": "", "sign2": "", "sign3": "", "sign4": ""
+        }
+    
+    # 读取当前日期专属的数据
+    current_data = st.session_state.saved_data[date_key]
+    
+    with col_wh:
+        current_data["warehouse"] = st.text_input("🏠 仓库", value=current_data["warehouse"])
+    with col_user:
+        current_data["supervisor"] = st.text_input("👤 值班主管 (签字确认)", value=current_data["supervisor"])
+        
+    st.markdown("---")
+    
+    # --- 一、早班工作清单 ---
+    st.subheader("一、早班工作清单")
+    # st.data_editor 是 Streamlit 极其强大的交互组件，用户可直接双击格子输入、勾选，且输入即保存
+    edited_morning = st.data_editor(
+        current_data["morning_tasks"], 
+        use_container_width=True, 
+        hide_index=True,
+        key=f"morning_{date_key}"
+    )
+    current_data["morning_tasks"] = edited_morning
+    
+    # --- 二、与 三、 并排布局 ---
+    col_left, col_right = st.columns(2)
+    
+    with col_left:
+        st.subheader("二、早班叫车与清关行提货")
+        edited_customs = st.data_editor(
+            current_data["customs_data"],
+            use_container_width=True,
+            hide_index=True,
+            key=f"customs_{date_key}"
+        )
+        current_data["customs_data"] = edited_customs
+        
+    with col_right:
+        st.subheader("三、渠道发货记录")
+        edited_shipping = st.data_editor(
+            current_data["shipping_data"],
+            use_container_width=True,
+            hide_index=True,
+            key=f"shipping_{date_key}"
+        )
+        current_data["shipping_data"] = edited_shipping
+        
+    # --- 四、特殊事件及延误 ---
+    st.subheader("四、特殊事件及延误")
+    edited_events = st.data_editor(
+        current_data["special_events"],
+        use_container_width=True,
+        hide_index=True,
+        num_rows="dynamic", # 支持动态增加行
+        key=f"events_{date_key}"
+    )
+    current_data["special_events"] = edited_events
+    
+    # --- 五、交接确认 ---
+    st.subheader("五、交接确认")
+    with st.container(border=True):
+        col_s1, col_s2, col_s3, col_s4 = st.columns(4)
+        current_data["sign1"] = col_s1.text_input("交班人签字 :", value=current_data["sign1"])
+        current_data["sign2"] = col_s2.text_input("接班人签字 :", value=current_data["sign2"])
+        current_data["sign3"] = col_s3.text_input("主管签字 :", value=current_data["sign3"])
+        current_data["sign4"] = col_s4.text_input("区域经理签字 :", value=current_data["sign4"])
+        
+    # --- 数据控制按钮 ---
+    st.markdown("---")
+    col_btn1, col_btn2, _ = st.columns([1, 1, 4])
+    with col_btn1:
+        if st.button("💾 点击强制保存当前页数据", type="primary"):
+            st.success(f"🎉 成功保存 {date_key} 的交接清单数据到系统后台！")
+    with col_btn2:
+        if st.button("🧹 清空今日表格", type="secondary"):
+            del st.session_state.saved_data[date_key]
+            st.rerun()

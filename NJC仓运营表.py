@@ -1,6 +1,28 @@
 import streamlit as st
 import datetime
 import pandas as pd
+import json
+import os
+
+# ==========================================
+# 0. 核心数据本地持久化函数 (JSON 数据库)
+# ==========================================
+DB_FILE = "njc_database.json"
+
+def load_global_data():
+    """从本地文件加载所有历史数据"""
+    if os.path.exists(DB_FILE):
+        try:
+            with open(DB_FILE, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except:
+            return {}
+    return {}
+
+def save_global_data(data):
+    """将数据写入本地文件永久保存"""
+    with open(DB_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=4)
 
 # ==========================================
 # 1. 页面基本配置
@@ -59,31 +81,28 @@ if page == "📊 劳务排班预测":
     st.subheader(f"🔥 下午班次总计需通知劳务到场 : :blue[{total_needed} 人]")
 
 # ==========================================
-# 功能二：运营交接清单 (纯 Streamlit 原生响应式保存版)
+# 功能二：运营交接清单 (带数据库永久保存版)
 # ==========================================
 elif page == "📋 运营交接清单":
     st.title("📋 NJC仓运营交接清单 - 数据中心系统版")
-    st.caption("系统采用响应式数据编辑器，输入数据实时在后台自动保存。")
+    st.caption("系统采用响应式数据编辑器，点击下方保存按钮可永久沉淀至系统后台。")
     
-    # --- 顶层核心控制：日期与基本信息 ---
-    # 每天进入网页，这里都会自动刷新并锁定为当天的日期
+    # 1. 日期选择（每天打开自动定位到当天）
     col_date, col_wh, col_user = st.columns([1.5, 1, 1.5])
     with col_date:
         selected_date = st.date_input("📅 排班选择日期", datetime.date.today())
     
-    # 将日期转化为字符串，作为后台存储数据的唯一Key
     date_key = str(selected_date)
     
-    # 初始化当前选定日期的系统持久缓存
-    if "saved_data" not in st.session_state:
-        st.session_state.saved_data = {}
-        
-    if date_key not in st.session_state.saved_data:
-        # 如果是新的一天，自动刷新并初始化一个干净的空白表格数据
-        st.session_state.saved_data[date_key] = {
+    # 从后台文件读取总数据库
+    global_db = load_global_data()
+    
+    # 2. 如果当前日期在数据库中不存在，初始化干净的默认数据
+    if date_key not in global_db:
+        global_db[date_key] = {
             "warehouse": "NJC仓",
             "supervisor": "",
-            "morning_tasks": pd.DataFrame([
+            "morning_tasks": [
                 {"工作内容": "NJC仓派送货装车完成", "完成": False, "责任人": ""},
                 {"工作内容": "GOFO司机取货完成", "完成": False, "责任人": ""},
                 {"工作内容": "SPX司机取货完成", "完成": False, "责任人": ""},
@@ -91,93 +110,78 @@ elif page == "📋 运营交接清单":
                 {"工作内容": "UNI司机取货完成", "完成": False, "责任人": ""},
                 {"工作内容": "Temu退货接收登记完成", "完成": False, "责任人": ""},
                 {"工作内容": "异常包裹登记完成", "完成": False, "责任人": ""}
-            ]),
-            "customs_data": pd.DataFrame([
-                {"清关行": k, "状态": "", "数量": "", "时间": ""} 
-                for k in ["YUEJIE", "六脉", "mirage", "AGS", "Tolead", "SF", "R&T", "DD", "机场"]
-            ]),
-            "shipping_data": pd.DataFrame([
-                {"渠道": k, "货量": "", "时间": "", "人": ""}
-                for k in ["GOFO", "SPX", "DD301", "UNI", "TEMU"]
-            ]),
-            "special_events": pd.DataFrame([
-                {"时间": "", "内容": "", "措施": ""},
-                {"时间": "", "内容": "", "措施": ""}
-            ]),
+            ],
+            "customs_data": [{"清关行": k, "状态": "", "数量": "", "时间": ""} for k in ["YUEJIE", "六脉", "mirage", "AGS", "Tolead", "SF", "R&T", "DD", "机场"]],
+            "shipping_data": [{"渠道": k, "货量": "", "时间": "", "人": ""} for k in ["GOFO", "SPX", "DD301", "UNI", "TEMU"]],
+            "special_events": [{"时间": "", "内容": "", "措施": ""}, {"时间": "", "内容": "", "措施": ""}],
             "sign1": "", "sign2": "", "sign3": "", "sign4": ""
         }
     
-    # 读取当前日期专属的数据
-    current_data = st.session_state.saved_data[date_key]
+    # 获取当天的数据快照
+    day_data = global_db[date_key]
     
+    # 3. 渲染基本信息输入框
     with col_wh:
-        current_data["warehouse"] = st.text_input("🏠 仓库", value=current_data["warehouse"])
+        wh_val = st.text_input("🏠 仓库", value=day_data.get("warehouse", "NJC仓"), key=f"wh_{date_key}")
     with col_user:
-        current_data["supervisor"] = st.text_input("👤 值班主管 (签字确认)", value=current_data["supervisor"])
+        sv_val = st.text_input("👤 值班主管 (签字确认)", value=day_data.get("supervisor", ""), key=f"sv_{date_key}")
         
     st.markdown("---")
     
     # --- 一、早班工作清单 ---
     st.subheader("一、早班工作清单")
-    # st.data_editor 是 Streamlit 极其强大的交互组件，用户可直接双击格子输入、勾选，且输入即保存
-    edited_morning = st.data_editor(
-        current_data["morning_tasks"], 
-        use_container_width=True, 
-        hide_index=True,
-        key=f"morning_{date_key}"
-    )
-    current_data["morning_tasks"] = edited_morning
+    df_morning = pd.DataFrame(day_data["morning_tasks"])
+    edited_morning = st.data_editor(df_morning, use_container_width=True, hide_index=True, key=f"edit_edit_morning_{date_key}")
     
     # --- 二、与 三、 并排布局 ---
     col_left, col_right = st.columns(2)
-    
     with col_left:
         st.subheader("二、早班叫车与清关行提货")
-        edited_customs = st.data_editor(
-            current_data["customs_data"],
-            use_container_width=True,
-            hide_index=True,
-            key=f"customs_{date_key}"
-        )
-        current_data["customs_data"] = edited_customs
+        df_customs = pd.DataFrame(day_data["customs_data"])
+        edited_customs = st.data_editor(df_customs, use_container_width=True, hide_index=True, key=f"edit_customs_{date_key}")
         
     with col_right:
         st.subheader("三、渠道发货记录")
-        edited_shipping = st.data_editor(
-            current_data["shipping_data"],
-            use_container_width=True,
-            hide_index=True,
-            key=f"shipping_{date_key}"
-        )
-        current_data["shipping_data"] = edited_shipping
+        df_shipping = pd.DataFrame(day_data["shipping_data"])
+        edited_shipping = st.data_editor(df_shipping, use_container_width=True, hide_index=True, key=f"edit_shipping_{date_key}")
         
     # --- 四、特殊事件及延误 ---
     st.subheader("四、特殊事件及延误")
-    edited_events = st.data_editor(
-        current_data["special_events"],
-        use_container_width=True,
-        hide_index=True,
-        num_rows="dynamic", # 支持动态增加行
-        key=f"events_{date_key}"
-    )
-    current_data["special_events"] = edited_events
+    df_events = pd.DataFrame(day_data["special_events"])
+    edited_events = st.data_editor(df_events, use_container_width=True, hide_index=True, num_rows="dynamic", key=f"edit_events_{date_key}")
     
     # --- 五、交接确认 ---
     st.subheader("五、交接确认")
     with st.container(border=True):
         col_s1, col_s2, col_s3, col_s4 = st.columns(4)
-        current_data["sign1"] = col_s1.text_input("交班人签字 :", value=current_data["sign1"])
-        current_data["sign2"] = col_s2.text_input("接班人签字 :", value=current_data["sign2"])
-        current_data["sign3"] = col_s3.text_input("主管签字 :", value=current_data["sign3"])
-        current_data["sign4"] = col_s4.text_input("区域经理签字 :", value=current_data["sign4"])
+        s1 = col_s1.text_input("交班人签字 :", value=day_data.get("sign1", ""), key=f"s1_{date_key}")
+        s2 = col_s2.text_input("接班人签字 :", value=day_data.get("sign2", ""), key=f"s2_{date_key}")
+        s3 = col_s3.text_input("主管签字 :", value=day_data.get("sign3", ""), key=f"s3_{date_key}")
+        s4 = col_s4.text_input("区域经理签字 :", value=day_data.get("sign4", ""), key=f"s4_{date_key}")
         
-    # --- 数据控制按钮 ---
+    # --- 数据控制核心按钮 ---
     st.markdown("---")
-    col_btn1, col_btn2, _ = st.columns([1, 1, 4])
+    col_btn1, col_btn2, _ = st.columns([1.5, 1.5, 4])
+    
     with col_btn1:
-        if st.button("💾 点击强制保存当前页数据", type="primary"):
-            st.success(f"🎉 成功保存 {date_key} 的交接清单数据到系统后台！")
+        if st.button("💾 点击保存当前页数据到后台", type="primary"):
+            # 捕获用户在界面上做出的所有最新修改
+            global_db[date_key] = {
+                "warehouse": wh_val,
+                "supervisor": sv_val,
+                "morning_tasks": edited_morning.to_dict(orient="records"),
+                "customs_data": edited_customs.to_dict(orient="records"),
+                "shipping_data": edited_shipping.to_dict(orient="records"),
+                "special_events": edited_events.to_dict(orient="records"),
+                "sign1": s1, "sign2": s2, "sign3": s3, "sign4": s4
+            }
+            # 写入本地JSON数据库，实现永久保存
+            save_global_data(global_db)
+            st.success(f"🎉 成功将 {date_key} 的数据锁定保存至后台数据库！刷新网页也不会丢失。")
+            
     with col_btn2:
-        if st.button("🧹 清空今日表格", type="secondary"):
-            del st.session_state.saved_data[date_key]
-            st.rerun()
+        if st.button("🧹 擦除今日表格", type="secondary"):
+            if date_key in global_db:
+                del global_db[date_key]
+                save_global_data(global_db)
+                st.rerun()

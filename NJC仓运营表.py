@@ -185,3 +185,18 @@ elif page == "📋 运营交接清单":
                 del global_db[date_key]
                 save_global_data(global_db)
                 st.rerun()
+# ==========================================
+    # 3. 网页端直接查看/下载后台全量原始数据
+    # ==========================================
+    st.markdown("---")
+    with st.expander("🔍 点击展开/折叠 查看系统后台全量历史数据库 (Json 格式)"):
+        all_data = load_global_data()
+        st.json(all_data)
+        
+        # 增加一键下载整盘数据库备份的按钮
+        st.download_button(
+            label="📥 下载整盘数据库备份 (.json)",
+            data=json.dumps(all_data, ensure_ascii=False, indent=4),
+            file_name="njc_warehouse_db_backup.json",
+            mime="application/json"
+        )

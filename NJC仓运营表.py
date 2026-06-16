@@ -131,7 +131,47 @@ elif page == "📋 运营交接清单":
             wh_val = st.text_input("🏠 仓库名称", value=day_data.get("warehouse", "NJC仓"), key=f"wh_{date_key}")
         with col_user:
             sv_val = st.text_input("👤 当班值班主管", value=day_data.get("supervisor", ""), key=f"sv_{date_key}", placeholder="请输入主管姓名")
+        # --- 在你的运营交接清单页面代码最后，添加/替换为以下部分 ---
+    st.markdown("---")
+    st.header("📊 NJC 仓运管核心数据流水大盘")
+    
+    # 1. 加载所有历史数据
+    all_history = load_global_data()
+    shipping_rows = []
+    
+    # 2. 遍历所有日期的数据，提取渠道发货记录
+    for date, content in all_history.items():
+        # 获取该日期的发货列表
+        for row in content.get("shipping_data", []):
+            # 确保有货量数据
+            if row.get("货量"):
+                shipping_rows.append({
+                    "日期": date, 
+                    "渠道": row.get("渠道"), 
+                    "货量": row.get("货量")
+                })
+    
+    if shipping_rows:
+        df_s = pd.DataFrame(shipping_rows)
         
+        # 3. 数据清洗：将货量列强制转换为数字，防止填入汉字导致报错
+        df_s['货量'] = pd.to_numeric(df_s['货量'], errors='coerce').fillna(0)
+        
+        # 4. 按日期自动求和
+        daily_summary = df_s.groupby('日期')['货量'].sum().reset_index()
+        daily_summary = daily_summary.sort_values(by='日期', ascending=False)
+        
+        # 5. UI 展示
+        col_left, col_right = st.columns([1, 2])
+        with col_left:
+            st.write("📈 **每日总货量汇总表**")
+            st.table(daily_summary.head(10)) # 显示最近10天
+        with col_right:
+            st.write("📊 **货量趋势概览**")
+            st.line_chart(daily_summary.set_index('日期'))
+            
+    else:
+        st.info("💡 暂无发货流水记录，请在上方填写并保存后，此处将自动生成大盘。")
     # --- 核心表单填写区 ---
     st.markdown("### 📝 今日运营数据登记")
     

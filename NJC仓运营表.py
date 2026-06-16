@@ -243,15 +243,29 @@ elif page == "📋 运营交接清单":
             else:
                 st.info("💡 暂无提货流水明细")
 
-        with panel2:
-            st.subheader("📦 历史发货（渠道出库）流水总账")
-            if shipping_rows:
-                df_s_excel = pd.DataFrame(shipping_rows)
-                st.dataframe(df_s_excel, use_container_width=True, hide_index=True)
-                # 发货下载
-                csv_s = df_s_excel.to_csv(index=False).encode('utf-8-sig')
-                st.download_button("📥 导出发货历史 Excel", data=csv_s, file_name=f"NJC发货大盘_{datetime.date.today()}.csv", mime="text/csv", key="dl_s")
-            else:
-                st.info("💡 暂无发货渠道流水明细")
+       with panel2:
+    st.subheader("📦 历史发货（渠道出库）流水总账")
+    if shipping_rows:
+        df_s_excel = pd.DataFrame(shipping_rows)
+        # --- 核心新增功能：数据清洗与统计 ---
+        # 将货量列强制转换为数字，防止录入时填了非数字导致报错
+        df_s_excel['出库货量(件)'] = pd.to_numeric(df_s_excel['出库货量(件)'], errors='coerce').fillna(0)
+        
+        # 1. 每日货量汇总表
+        daily_summary = df_s_excel.groupby('日期')['出库货量(件)'].sum().reset_index().sort_values(by='日期', ascending=False)
+        st.write("📈 **近况货量汇总**")
+        st.table(daily_summary.head(7)) # 显示最近7天
+        
+        # 2. 货量趋势图
+        st.line_chart(daily_summary.set_index('日期'))
+        
+        # 3. 原始流水账展示
+        st.dataframe(df_s_excel, use_container_width=True, hide_index=True)
+        
+        # 导出发货下载
+        csv_s = df_s_excel.to_csv(index=False).encode('utf-8-sig')
+        st.download_button("📥 导出发货历史 Excel", data=csv_s, file_name=f"NJC发货大盘_{datetime.date.today()}.csv", mime="text/csv", key="dl_s")
+    else:
+        st.info("💡 暂无发货渠道流水明细")
     else:
         st.info("💡 目前数据库空空如也，请在上方填写并点击保存，数据大盘将自动为您亮起！")

@@ -144,13 +144,23 @@ st.markdown("""
     }
 
     button:not([kind="primary"]) {
-        background-color: #FFFFFF !important;
-        color: #0B1F3A !important;
-        border-color: #D8E0EA !important;
+        background: #EFF6FF !important;
+        color: #155EEF !important;
+        border-color: #BFDBFE !important;
     }
 
     button:not([kind="primary"]) * {
-        color: #0B1F3A !important;
+        color: #155EEF !important;
+    }
+
+    button:not([kind="primary"]):hover {
+        background: #DBEAFE !important;
+        border-color: #93C5FD !important;
+        color: #1D4ED8 !important;
+    }
+
+    button:not([kind="primary"]):hover * {
+        color: #1D4ED8 !important;
     }
 
     div[data-testid="stFormSubmitButton"] button,

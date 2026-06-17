@@ -130,37 +130,37 @@ st.markdown("""
         border-radius: 12px;
         font-weight: 700;
         height: 2.9rem;
-        border: 1px solid rgba(37, 99, 235, 0.25);
+        border: 1px solid rgba(37, 99, 235, 0.38) !important;
         box-shadow: none;
-        background: #FFFFFF !important;
-        color: #0B1F3A !important;
+        background: linear-gradient(135deg, #2563EB 0%, #0EA5B7 100%) !important;
+        color: #FFFFFF !important;
     }
 
     .stButton>button[kind="primary"],
     div[data-testid="stFormSubmitButton"] button[kind="primary"] {
-        background: linear-gradient(135deg, var(--blue), var(--cyan));
-        border: 0;
+        background: linear-gradient(135deg, #2563EB 0%, #0EA5B7 100%) !important;
+        border: 0 !important;
         color: #FFFFFF !important;
     }
 
     button:not([kind="primary"]) {
-        background: #EFF6FF !important;
-        color: #155EEF !important;
-        border-color: #BFDBFE !important;
+        background: linear-gradient(135deg, #2563EB 0%, #0EA5B7 100%) !important;
+        color: #FFFFFF !important;
+        border-color: rgba(37, 99, 235, 0.38) !important;
     }
 
     button:not([kind="primary"]) * {
-        color: #155EEF !important;
+        color: #FFFFFF !important;
     }
 
     button:not([kind="primary"]):hover {
-        background: #DBEAFE !important;
-        border-color: #93C5FD !important;
-        color: #1D4ED8 !important;
+        background: linear-gradient(135deg, #1D4ED8 0%, #0891B2 100%) !important;
+        border-color: rgba(29, 78, 216, 0.45) !important;
+        color: #FFFFFF !important;
     }
 
     button:not([kind="primary"]):hover * {
-        color: #1D4ED8 !important;
+        color: #FFFFFF !important;
     }
 
     div[data-testid="stFormSubmitButton"] button,

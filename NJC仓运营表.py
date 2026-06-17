@@ -465,6 +465,34 @@ st.markdown("""
         color: #0B1F3A;
     }
 
+    .njc-edit-head {
+        background: #F8FAFD;
+        border: 1px solid #DDE5EF;
+        border-radius: 14px 14px 0 0;
+        padding: 0.7rem 0.9rem;
+        font-weight: 850;
+        color: #0B1F3A;
+    }
+
+    .njc-edit-row {
+        background: #FFFFFF;
+        border-left: 1px solid #DDE5EF;
+        border-right: 1px solid #DDE5EF;
+        border-bottom: 1px solid #E7EDF5;
+        padding: 0.48rem 0.9rem;
+    }
+
+    .njc-edit-row:last-child {
+        border-radius: 0 0 14px 14px;
+    }
+
+    .njc-edit-row input {
+        background: #FFFFFF !important;
+        color: #111827 !important;
+        border: 1px solid #D8E0EA !important;
+        box-shadow: none !important;
+    }
+
     .njc-table-wrap {
         background: #FFFFFF;
         border: 1px solid #D8E0EA;
@@ -523,6 +551,68 @@ def render_page_header(icon, title, subtitle):
             </div>
         </div>
     """, unsafe_allow_html=True)
+
+def render_morning_editor(rows, key_prefix):
+    st.markdown('<div class="njc-edit-head">早班日常工作自查</div>', unsafe_allow_html=True)
+    header_cols = st.columns([3.2, 1.2, 1.6])
+    header_cols[0].markdown("**工作内容**")
+    header_cols[1].markdown("**完成**")
+    header_cols[2].markdown("**责任人**")
+
+    edited_rows = []
+    for idx, row in enumerate(rows):
+        st.markdown('<div class="njc-edit-row">', unsafe_allow_html=True)
+        cols = st.columns([3.2, 1.2, 1.6])
+        work = cols[0].text_input(
+            f"工作内容 {idx + 1}",
+            value=row.get("工作内容", ""),
+            label_visibility="collapsed",
+            key=f"{key_prefix}_work_{idx}"
+        )
+        done = cols[1].checkbox(
+            f"完成 {idx + 1}",
+            value=bool(row.get("完成", False)),
+            label_visibility="collapsed",
+            key=f"{key_prefix}_done_{idx}"
+        )
+        owner = cols[2].text_input(
+            f"责任人 {idx + 1}",
+            value=row.get("责任人", ""),
+            label_visibility="collapsed",
+            key=f"{key_prefix}_owner_{idx}"
+        )
+        st.markdown('</div>', unsafe_allow_html=True)
+        edited_rows.append({"工作内容": work, "完成": done, "责任人": owner})
+
+    return edited_rows
+
+def render_text_grid_editor(rows, columns, key_prefix, title, extra_blank_rows=0):
+    st.markdown(f'<div class="njc-edit-head">{title}</div>', unsafe_allow_html=True)
+    header_cols = st.columns([1] * len(columns))
+    for col, column_name in zip(header_cols, columns):
+        col.markdown(f"**{column_name}**")
+
+    editable_rows = list(rows)
+    for _ in range(extra_blank_rows):
+        editable_rows.append({column_name: "" for column_name in columns})
+
+    edited_rows = []
+    for idx, row in enumerate(editable_rows):
+        st.markdown('<div class="njc-edit-row">', unsafe_allow_html=True)
+        row_cols = st.columns([1] * len(columns))
+        edited_row = {}
+        for col, column_name in zip(row_cols, columns):
+            edited_row[column_name] = col.text_input(
+                f"{title} {column_name} {idx + 1}",
+                value=str(row.get(column_name, "")),
+                label_visibility="collapsed",
+                key=f"{key_prefix}_{column_name}_{idx}"
+            )
+        st.markdown('</div>', unsafe_allow_html=True)
+        if any(str(value).strip() for value in edited_row.values()):
+            edited_rows.append(edited_row)
+
+    return edited_rows
 
 # ==========================================
 # 登录验证
@@ -769,23 +859,35 @@ elif page == "📋 运营交接清单":
     
     with tab1:
         st.subheader("一、早班日常工作自查")
-        df_morning = pd.DataFrame(day_data["morning_tasks"])
-        edited_morning = st.data_editor(df_morning, use_container_width=True, hide_index=True, key=f"edit_morning_{date_key}")
+        edited_morning = render_morning_editor(day_data["morning_tasks"], f"edit_morning_{date_key}")
         
         st.markdown("---")
         st.subheader("四、特殊事件及延误跟进")
-        df_events = pd.DataFrame(day_data["special_events"])
-        edited_events = st.data_editor(df_events, use_container_width=True, hide_index=True, num_rows="dynamic", key=f"edit_events_{date_key}")
+        edited_events = render_text_grid_editor(
+            day_data["special_events"],
+            ["时间", "内容", "措施"],
+            f"edit_events_{date_key}",
+            "特殊事件及延误跟进",
+            extra_blank_rows=2
+        )
 
     with tab2:
         st.subheader("二、早班叫车与清关行提货记录")
-        df_customs = pd.DataFrame(day_data["customs_data"])
-        edited_customs = st.data_editor(df_customs, use_container_width=True, hide_index=True, key=f"edit_customs_{date_key}")
+        edited_customs = render_text_grid_editor(
+            day_data["customs_data"],
+            ["清关行", "状态", "数量", "时间"],
+            f"edit_customs_{date_key}",
+            "清关提货登记"
+        )
         
     with tab3:
         st.subheader("三、渠道发货出库记录")
-        df_shipping = pd.DataFrame(day_data["shipping_data"])
-        edited_shipping = st.data_editor(df_shipping, use_container_width=True, hide_index=True, key=f"edit_shipping_{date_key}")
+        edited_shipping = render_text_grid_editor(
+            day_data["shipping_data"],
+            ["渠道", "货量", "时间", "人"],
+            f"edit_shipping_{date_key}",
+            "渠道发货记录"
+        )
         
     # 交接确认行
     st.markdown("---")

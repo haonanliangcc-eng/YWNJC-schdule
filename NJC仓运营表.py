@@ -52,6 +52,16 @@ st.markdown("""
         color: #111827;
     }
 
+    html, body, [data-testid="stAppViewContainer"], [data-testid="stHeader"] {
+        background: #F6F8FC !important;
+        color: #111827 !important;
+    }
+
+    [data-testid="stHeader"]::before,
+    [data-testid="stHeader"]::after {
+        background: #F6F8FC !important;
+    }
+
     .block-container {
         padding-top: 1.65rem;
         padding-bottom: 2.25rem;
@@ -131,6 +141,44 @@ st.markdown("""
         border-radius: 10px !important;
         background-color: #FFFFFF !important;
         color: #111827 !important;
+    }
+
+    [data-baseweb="input"],
+    [data-baseweb="base-input"],
+    [data-testid="stNumberInput"] div,
+    [data-testid="stNumberInput"] button,
+    [data-testid="stNumberInput"] input {
+        background-color: #FFFFFF !important;
+        color: #111827 !important;
+        border-color: #D8E0EA !important;
+    }
+
+    [data-testid="stNumberInput"] button {
+        background: #F4F7FB !important;
+        color: #111827 !important;
+        border-left: 1px solid #D8E0EA !important;
+        box-shadow: none !important;
+    }
+
+    [data-testid="stNumberInput"] button svg,
+    [data-testid="stNumberInput"] button svg * {
+        fill: #111827 !important;
+        color: #111827 !important;
+        stroke: #111827 !important;
+    }
+
+    [data-testid="stNumberInput"] input {
+        box-shadow: none !important;
+        outline: none !important;
+    }
+
+    [data-testid="stSlider"] *,
+    [data-testid="stSlider"] div {
+        color: #111827 !important;
+    }
+
+    [data-testid="stSlider"] [data-baseweb="slider"] {
+        background: transparent !important;
     }
 
     label, p, span, div {

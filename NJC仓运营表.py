@@ -469,7 +469,7 @@ st.markdown("""
         background: #F8FAFD;
         border: 1px solid #DDE5EF;
         border-radius: 14px 14px 0 0;
-        padding: 0.7rem 0.9rem;
+        padding: 1rem 1.25rem;
         font-weight: 850;
         color: #0B1F3A;
     }
@@ -479,7 +479,7 @@ st.markdown("""
         border-left: 1px solid #DDE5EF;
         border-right: 1px solid #DDE5EF;
         border-bottom: 1px solid #E7EDF5;
-        padding: 0.48rem 0.9rem;
+        padding: 0.72rem 1.25rem;
     }
 
     .njc-edit-row:last-child {
@@ -491,6 +491,51 @@ st.markdown("""
         color: #111827 !important;
         border: 1px solid #D8E0EA !important;
         box-shadow: none !important;
+    }
+
+    .njc-progress-line {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 0.85rem 1.25rem;
+        background: #FFFFFF;
+        border-left: 1px solid #DDE5EF;
+        border-right: 1px solid #DDE5EF;
+        border-bottom: 1px solid #E7EDF5;
+    }
+
+    .njc-progress-track {
+        height: 8px;
+        flex: 1;
+        border-radius: 999px;
+        background: #EEF2F7;
+        overflow: hidden;
+    }
+
+    .njc-progress-fill {
+        height: 100%;
+        border-radius: 999px;
+        background: linear-gradient(90deg, #2563EB, #16A34A);
+    }
+
+    .njc-progress-count {
+        color: #16A34A !important;
+        font-weight: 850;
+        min-width: 3rem;
+        text-align: right;
+    }
+
+    .njc-badge {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 3.2rem;
+        padding: 0.18rem 0.62rem;
+        border-radius: 999px;
+        background: #DBEAFE;
+        color: #155EEF !important;
+        font-weight: 850;
+        font-size: 0.86rem;
     }
 
     .njc-table-wrap {
@@ -553,7 +598,20 @@ def render_page_header(icon, title, subtitle):
     """, unsafe_allow_html=True)
 
 def render_morning_editor(rows, key_prefix):
-    st.markdown('<div class="njc-edit-head">早班日常工作自查</div>', unsafe_allow_html=True)
+    done_count = sum(1 for row in rows if row.get("完成"))
+    total_count = len(rows) if rows else 1
+    progress_pct = int(done_count / total_count * 100)
+
+    st.markdown('<div class="njc-edit-head">一、早班日常工作自查</div>', unsafe_allow_html=True)
+    st.markdown(f"""
+        <div class="njc-progress-line">
+            <div style="font-weight:700;color:#0B1F3A;">完成进度</div>
+            <div class="njc-progress-track">
+                <div class="njc-progress-fill" style="width:{progress_pct}%"></div>
+            </div>
+            <div class="njc-progress-count">{done_count}/{total_count}</div>
+        </div>
+    """, unsafe_allow_html=True)
     header_cols = st.columns([3.2, 1.2, 1.6])
     header_cols[0].markdown("**工作内容**")
     header_cols[1].markdown("**完成**")
@@ -602,12 +660,17 @@ def render_text_grid_editor(rows, columns, key_prefix, title, extra_blank_rows=0
         row_cols = st.columns([1] * len(columns))
         edited_row = {}
         for col, column_name in zip(row_cols, columns):
-            edited_row[column_name] = col.text_input(
-                f"{title} {column_name} {idx + 1}",
-                value=str(row.get(column_name, "")),
-                label_visibility="collapsed",
-                key=f"{key_prefix}_{column_name}_{idx}"
-            )
+            current_value = str(row.get(column_name, ""))
+            if column_name in ["清关行", "渠道"] and current_value:
+                col.markdown(f'<span class="njc-badge">{current_value}</span>', unsafe_allow_html=True)
+                edited_row[column_name] = current_value
+            else:
+                edited_row[column_name] = col.text_input(
+                    f"{title} {column_name} {idx + 1}",
+                    value=current_value,
+                    label_visibility="collapsed",
+                    key=f"{key_prefix}_{column_name}_{idx}"
+                )
         st.markdown('</div>', unsafe_allow_html=True)
         if any(str(value).strip() for value in edited_row.values()):
             edited_rows.append(edited_row)
@@ -626,8 +689,131 @@ if "login_user" not in st.session_state:
 
 if not st.session_state.authenticated:
     st.markdown("""
+        <style>
+        html, body, .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"] {
+            background: linear-gradient(180deg, #101B35 0%, #17275B 100%) !important;
+        }
+
+        [data-testid="stHeader"] {
+            display: none;
+        }
+
+        .block-container {
+            max-width: 760px;
+            padding-top: 4.2rem;
+        }
+
+        .njc-login-hero {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .njc-login-logo {
+            width: 78px;
+            height: 78px;
+            border-radius: 18px;
+            background: linear-gradient(135deg, #2F6FED, #2563EB);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: #FFFFFF !important;
+            font-size: 2rem;
+            box-shadow: 0 18px 36px rgba(37, 99, 235, 0.28);
+            margin-bottom: 1.35rem;
+        }
+
+        .njc-login-hero-title {
+            color: #FFFFFF !important;
+            font-size: 2.25rem;
+            line-height: 1.15;
+            font-weight: 900;
+            margin-bottom: 0.45rem;
+        }
+
+        .njc-login-hero-subtitle {
+            color: #B9C7DC !important;
+            font-size: 1rem;
+        }
+
+        .njc-login-panel {
+            max-width: 560px;
+            margin: 0 auto;
+            padding: 2.1rem 2.35rem 0.8rem;
+            background: rgba(42, 58, 104, 0.72);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 20px 20px 0 0;
+            box-shadow: 0 28px 64px rgba(0, 0, 0, 0.22);
+            backdrop-filter: blur(10px);
+        }
+
+        .njc-login-title {
+            color: #FFFFFF !important;
+            font-size: 1.35rem;
+            font-weight: 900;
+        }
+
+        .njc-login-subtitle {
+            color: #B9C7DC !important;
+        }
+
+        div[data-testid="stForm"] {
+            max-width: 560px;
+            margin: 0 auto;
+            padding: 0.2rem 2.35rem 2.4rem;
+            background: rgba(42, 58, 104, 0.72);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-top: 0;
+            border-radius: 0 0 20px 20px;
+            box-shadow: 0 28px 64px rgba(0, 0, 0, 0.22);
+            backdrop-filter: blur(10px);
+        }
+
+        div[data-testid="stForm"] label,
+        div[data-testid="stForm"] p,
+        div[data-testid="stForm"] span {
+            color: #EAF1FF !important;
+        }
+
+        div[data-testid="stForm"] input,
+        div[data-testid="stForm"] [data-baseweb="input"] {
+            background: rgba(255,255,255,0.08) !important;
+            border-color: rgba(255,255,255,0.22) !important;
+            color: #FFFFFF !important;
+            border-radius: 14px !important;
+            height: 3.25rem;
+        }
+
+        div[data-testid="stForm"] input::placeholder {
+            color: #97A7C2 !important;
+        }
+
+        div[data-testid="stFormSubmitButton"] button {
+            height: 3.55rem;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #2F6FED 0%, #0EA5B7 100%) !important;
+            color: #FFFFFF !important;
+            font-size: 1.05rem;
+            box-shadow: 0 18px 34px rgba(37, 99, 235, 0.32);
+            border: 0 !important;
+        }
+
+        .njc-login-footer {
+            text-align: center;
+            margin-top: 1.8rem;
+            color: #6F82A5 !important;
+            font-size: 0.9rem;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+
+    st.markdown("""
+        <div class="njc-login-hero">
+            <div class="njc-login-logo">▣</div>
+            <div class="njc-login-hero-title">NJC 数据管理中心</div>
+            <div class="njc-login-hero-subtitle">运营仓智能调度系统</div>
+        </div>
         <div class="njc-login-panel">
-            <div class="njc-login-title">🔐 NJC运营仓数据中心</div>
+            <div class="njc-login-title">登录系统</div>
             <div class="njc-login-subtitle">请输入用户名和统一密码后进入系统。</div>
         </div>
     """, unsafe_allow_html=True)
@@ -647,6 +833,7 @@ if not st.session_state.authenticated:
             st.session_state.login_user = login_user.strip()
             st.rerun()
 
+    st.markdown('<div class="njc-login-footer">NJC 运营仓 · 数字化管理平台</div>', unsafe_allow_html=True)
     st.stop()
 
 # ==========================================
@@ -1004,7 +1191,7 @@ elif page == "📋 运营交接清单":
         panel1, panel2 = st.columns(2)
         
         with panel1:
-            st.subheader("🚚 历史提货（清关行）流水总账")
+            st.markdown('<div class="njc-table-card-head">🚚 提货（清关行）流水总账</div>', unsafe_allow_html=True)
             if customs_rows:
                 df_c_excel = pd.DataFrame(customs_rows)
                 render_light_table(df_c_excel)
@@ -1015,7 +1202,7 @@ elif page == "📋 运营交接清单":
                 st.info("💡 暂无提货流水明细")
 
         with panel2:
-            st.subheader("📦 历史发货（渠道出库）流水总账")
+            st.markdown('<div class="njc-table-card-head">📦 发货（渠道出库）流水总账</div>', unsafe_allow_html=True)
             if shipping_rows:
                 df_s_excel = pd.DataFrame(shipping_rows)
                 render_light_table(df_s_excel)

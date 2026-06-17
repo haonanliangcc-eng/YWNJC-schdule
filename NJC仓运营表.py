@@ -4,6 +4,7 @@ import pandas as pd
 import json
 import os
 import math
+import streamlit.components.v1 as components
 
 # ==========================================
 # 0. 核心数据本地持久化函数 (JSON 数据库)
@@ -143,6 +144,35 @@ st.markdown("""
         color: #111827 !important;
     }
 
+    input,
+    textarea,
+    input[type="text"],
+    input[type="number"],
+    input[type="password"],
+    input[type="date"],
+    [data-baseweb="input"] input,
+    [data-testid="stTextInput"] input,
+    [data-testid="stNumberInput"] input,
+    [data-testid="stDateInput"] input {
+        background: #FFFFFF !important;
+        color: #050B18 !important;
+        -webkit-text-fill-color: #050B18 !important;
+        caret-color: #2563EB !important;
+        border-color: #D8E0EA !important;
+        box-shadow: none !important;
+        opacity: 1 !important;
+    }
+
+    input::placeholder,
+    textarea::placeholder,
+    [data-testid="stTextInput"] input::placeholder,
+    [data-testid="stNumberInput"] input::placeholder,
+    [data-testid="stDateInput"] input::placeholder {
+        color: #8A9AB3 !important;
+        -webkit-text-fill-color: #8A9AB3 !important;
+        opacity: 1 !important;
+    }
+
     [data-baseweb="input"],
     [data-baseweb="base-input"],
     [data-testid="stNumberInput"] div,
@@ -179,6 +209,31 @@ st.markdown("""
 
     [data-testid="stSlider"] [data-baseweb="slider"] {
         background: transparent !important;
+    }
+
+    [data-testid="stCheckbox"] label,
+    [data-testid="stCheckbox"] label * {
+        color: #111827 !important;
+    }
+
+    [data-testid="stCheckbox"] {
+        min-height: 3.05rem;
+        display: flex;
+        align-items: center;
+    }
+
+    [data-testid="stCheckbox"] input {
+        accent-color: #2563EB !important;
+        width: 18px !important;
+        height: 18px !important;
+        cursor: pointer !important;
+    }
+
+    [data-testid="stCheckbox"] svg,
+    [data-testid="stCheckbox"] svg * {
+        color: #2563EB !important;
+        fill: #2563EB !important;
+        stroke: #2563EB !important;
     }
 
     label, p, span, div {
@@ -493,6 +548,15 @@ st.markdown("""
         box-shadow: none !important;
     }
 
+    .njc-fixed-cell {
+        min-height: 3.05rem;
+        display: flex;
+        align-items: center;
+        padding: 0 0.2rem;
+        color: #0B1F3A !important;
+        font-weight: 650;
+    }
+
     .njc-progress-line {
         display: flex;
         align-items: center;
@@ -597,6 +661,67 @@ def render_page_header(icon, title, subtitle):
         </div>
     """, unsafe_allow_html=True)
 
+def render_sidebar_clock():
+    components.html(
+        """
+        <div class="clock-card">
+            <div class="clock-label">当前时间</div>
+            <div id="njcClockTime" class="clock-time">--:--:--</div>
+            <div id="njcClockDate" class="clock-date">----</div>
+        </div>
+        <style>
+            .clock-card {
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+                background: rgba(255, 255, 255, 0.08);
+                border: 1px solid rgba(255, 255, 255, 0.12);
+                border-radius: 14px;
+                padding: 14px 16px;
+                margin: 0 0 18px 0;
+            }
+            .clock-label {
+                color: #93A8C8;
+                font-size: 12px;
+                font-weight: 700;
+                margin-bottom: 6px;
+            }
+            .clock-time {
+                color: #FFFFFF;
+                font-size: 28px;
+                line-height: 1.05;
+                font-weight: 850;
+                letter-spacing: 0.5px;
+            }
+            .clock-date {
+                color: #B7C6DD;
+                margin-top: 6px;
+                font-size: 13px;
+            }
+        </style>
+        <script>
+            function updateClock() {
+                const now = new Date();
+                const time = now.toLocaleTimeString("zh-CN", {
+                    hour12: false,
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    second: "2-digit"
+                });
+                const date = now.toLocaleDateString("zh-CN", {
+                    year: "numeric",
+                    month: "2-digit",
+                    day: "2-digit",
+                    weekday: "long"
+                });
+                document.getElementById("njcClockTime").textContent = time;
+                document.getElementById("njcClockDate").textContent = date;
+            }
+            updateClock();
+            setInterval(updateClock, 1000);
+        </script>
+        """,
+        height=116,
+    )
+
 def render_morning_editor(rows, key_prefix):
     done_count = sum(1 for row in rows if row.get("完成"))
     total_count = len(rows) if rows else 1
@@ -621,12 +746,8 @@ def render_morning_editor(rows, key_prefix):
     for idx, row in enumerate(rows):
         st.markdown('<div class="njc-edit-row">', unsafe_allow_html=True)
         cols = st.columns([3.2, 1.2, 1.6])
-        work = cols[0].text_input(
-            f"工作内容 {idx + 1}",
-            value=row.get("工作内容", ""),
-            label_visibility="collapsed",
-            key=f"{key_prefix}_work_{idx}"
-        )
+        work = row.get("工作内容", "")
+        cols[0].markdown(f'<div class="njc-fixed-cell">{work}</div>', unsafe_allow_html=True)
         done = cols[1].checkbox(
             f"完成 {idx + 1}",
             value=bool(row.get("完成", False)),
@@ -857,8 +978,12 @@ st.sidebar.markdown(f"""
             <div class="njc-side-sub">当班用户</div>
         </div>
     </div>
-    <div class="njc-sidebar-label">功能模块</div>
 """, unsafe_allow_html=True)
+
+with st.sidebar:
+    render_sidebar_clock()
+
+st.sidebar.markdown('<div class="njc-sidebar-label">功能模块</div>', unsafe_allow_html=True)
 
 if st.sidebar.button("退出登录"):
     st.session_state.authenticated = False

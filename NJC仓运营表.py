@@ -47,6 +47,7 @@ st.markdown("""
     .stApp {
         background: #F6F8FC;
         color: #111827;
+        color-scheme: light;
     }
 
     .stApp, .stApp * {
@@ -56,6 +57,7 @@ st.markdown("""
     html, body, [data-testid="stAppViewContainer"], [data-testid="stHeader"] {
         background: #F6F8FC !important;
         color: #111827 !important;
+        color-scheme: light !important;
     }
 
     [data-testid="stHeader"]::before,
@@ -130,18 +132,39 @@ st.markdown("""
         height: 2.9rem;
         border: 1px solid rgba(37, 99, 235, 0.25);
         box-shadow: none;
+        background: #FFFFFF !important;
+        color: #0B1F3A !important;
     }
 
     .stButton>button[kind="primary"],
     div[data-testid="stFormSubmitButton"] button[kind="primary"] {
         background: linear-gradient(135deg, var(--blue), var(--cyan));
         border: 0;
+        color: #FFFFFF !important;
+    }
+
+    button:not([kind="primary"]) {
+        background-color: #FFFFFF !important;
+        color: #0B1F3A !important;
+        border-color: #D8E0EA !important;
+    }
+
+    button:not([kind="primary"]) * {
+        color: #0B1F3A !important;
+    }
+
+    div[data-testid="stFormSubmitButton"] button,
+    div[data-testid="stFormSubmitButton"] button *,
+    .stButton>button[kind="primary"],
+    .stButton>button[kind="primary"] * {
+        color: #FFFFFF !important;
     }
 
     input, textarea, [data-baseweb="select"] {
         border-radius: 10px !important;
         background-color: #FFFFFF !important;
         color: #111827 !important;
+        color-scheme: light !important;
     }
 
     input,
@@ -227,6 +250,20 @@ st.markdown("""
         width: 18px !important;
         height: 18px !important;
         cursor: pointer !important;
+        color-scheme: light !important;
+        background-color: #FFFFFF !important;
+    }
+
+    input[type="checkbox"] {
+        accent-color: #2563EB !important;
+        color-scheme: light !important;
+        background-color: #FFFFFF !important;
+        border: 1px solid #CBD5E1 !important;
+    }
+
+    [data-testid="stSidebar"] input[type="radio"] {
+        accent-color: #2F6FED !important;
+        color-scheme: light !important;
     }
 
     [data-testid="stCheckbox"] svg,
@@ -723,7 +760,11 @@ def render_sidebar_clock():
     )
 
 def render_morning_editor(rows, key_prefix):
-    done_count = sum(1 for row in rows if row.get("完成"))
+    done_count = sum(
+        1
+        for idx, row in enumerate(rows)
+        if st.session_state.get(f"{key_prefix}_done_{idx}", bool(row.get("完成", False)))
+    )
     total_count = len(rows) if rows else 1
     progress_pct = int(done_count / total_count * 100)
 
